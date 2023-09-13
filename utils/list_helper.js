@@ -47,9 +47,38 @@ const mostBlogs = (blogs) => {
     }
 }
 
+/**
+ * finds the author who has the most total likes and returns an object of given format
+ * {
+ *  author:'name',
+ *  likes:47
+ * }
+ *
+ * returns null if empty list is given
+ */
+const mostLikes = (blogs) => {
+    if(blogs.length === 0){
+        return null;
+    }
+
+    const result = _(blogs)
+        .groupBy((blog) => blog.author)
+        .entries()
+        .map((entry) => {
+            return {
+                author:_.head(entry),
+                likes:_.reduce(_.last(entry),(sum,blog) => sum+blog.likes,0)
+            }
+        })
+        .maxBy((b) => b.likes);
+
+    return result;
+}
+
 module.exports = {
     dummy,
     totalLikes,
     favoriteBlog,
-    mostBlogs
+    mostBlogs,
+    mostLikes
 }
