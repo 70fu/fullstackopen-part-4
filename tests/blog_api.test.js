@@ -37,4 +37,11 @@ describe('GET /api/blogs', () => {
         const titles = response.body.map(r => r.title);
         expect(titles).toContain('React patterns');
     });
+
+    test('returns blogs with ids', async () => {
+        const response = await api.get(url);
+        response.body.forEach(blog => {
+            expect(blog).toHaveProperty('id');
+        })
+    })
 })
