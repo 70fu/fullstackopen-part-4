@@ -105,3 +105,32 @@ describe('DELETE /api/blogs/:id',() => {
         expect(blogsAfter).not.toContainEqual(toBeRemoved);
     })
 })
+
+describe('PUT /api/blogs/:id',() => {
+    const url = '/api/blogs';
+    const newBlogValues = {
+        title: 'Representing Heterogeneous Data',
+        author: 'Bob Nystrom',
+        url: 'https://journal.stuffwithstuff.com/2023/08/04/representing-heterogeneous-data/',
+        likes: 16,
+    }
+    test('updates all fields accordingly', async () => {
+        const blogs = await helper.blogsInDb();
+        const updated = { ...newBlogValues,id:blogs[0].id };
+
+        const response = await api.put(`${url}/${blogs[0].id}`)
+            .send(updated)
+            .expect(200)
+            .expect('Content-Type',/application\/json/);
+
+        expect(response.body).toEqual(updated);
+    });
+
+    test('for non-existing id returns 404', async () => {
+        const nonExistingId = await helper.nonExistingId();
+        const updated = { ...newBlogValues,id:nonExistingId };
+        await api.put(`${url}/${nonExistingId}`)
+            .send(updated)
+            .expect(404);
+    });
+})
