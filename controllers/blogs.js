@@ -8,15 +8,12 @@ blogRouter.get('/', async (request, response) => {
     return response.json(blogs)
 })
 
-blogRouter.post('/', (request, response) => {
+blogRouter.post('/', async (request, response) => {
     logger.info('creating blog entry for body',request.body);
     const blog = new Blog(request.body)
 
-    blog
-        .save()
-        .then(result => {
-            response.status(201).json(result)
-        })
+    const result = await blog.save();
+    return response.status(201).json(result);
 })
 
 module.exports = blogRouter;

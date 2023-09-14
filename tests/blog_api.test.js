@@ -1,9 +1,11 @@
 const mongoose = require('mongoose')
 const supertest = require('supertest')
 const app = require('../app')
-const helper = require('./test_helpers');
 const api = supertest(app);
 const Blog = require('../models/blog');
+const helper = require('./test_helpers');
+const logger = require('../utils/logger');
+
 
 beforeEach(async () => {
     await Blog.deleteMany({});
@@ -43,5 +45,27 @@ describe('GET /api/blogs', () => {
         response.body.forEach(blog => {
             expect(blog).toHaveProperty('id');
         })
+    })
+});
+
+describe('POST /api/blogs', () => {
+    const url = '/api/blogs';
+    const newBlog = {
+        title: 'Representing Heterogeneous Data',
+        author: 'Bob Nystrom',
+        url: 'https://journal.stuffwithstuff.com/2023/08/04/representing-heterogeneous-data/',
+        likes: 16,
+    }
+
+    test('adds one blog', async () => {
+        const response = await api.post(url)
+            .send(newBlog)
+            .expect(201)
+            .expect('Content-Type',/application\/json/);
+
+        const blogs = await helper.blogsInDb();
+        expect(blogs.length).toBe(helper.initialBlogs.length + 1);
+
+        expect(blogs).toContainEqual(response.body);
     })
 })
