@@ -68,4 +68,25 @@ describe('POST /api/blogs', () => {
 
         expect(blogs).toContainEqual(response.body);
     })
+
+    test('sets likes to 0 if missing in request body', async () => {
+        const { likes, ...blogNoLikes } = newBlog;
+        const response = await api.post(url)
+            .send(blogNoLikes)
+            .expect(201)
+            .expect('Content-Type',/application\/json/);
+
+        expect(response.body).toHaveProperty('likes',0);
+    })
+
+    test('missing title returns 400', async () => {
+        const { title, ...blogNoTitle } = newBlog;
+        await api.post(url).send(blogNoTitle).expect(400);
+    })
+
+    test('missing url returns 400', async () => {
+        const blogNoUrl = { ...newBlog };
+        delete blogNoUrl.url;
+        await api.post(url).send(blogNoUrl).expect(400);
+    })
 })
