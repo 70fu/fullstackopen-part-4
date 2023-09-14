@@ -1,4 +1,5 @@
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
+//mongoose.set('bufferTimeoutMS',30000);
 const supertest = require('supertest')
 const app = require('../app')
 const api = supertest(app);
@@ -88,5 +89,19 @@ describe('POST /api/blogs', () => {
         const blogNoUrl = { ...newBlog };
         delete blogNoUrl.url;
         await api.post(url).send(blogNoUrl).expect(400);
+    })
+})
+
+describe('DELETE /api/blogs/:id',() => {
+    const url = '/api/blogs';
+    test('with valid id removes blog', async () => {
+        const blogs = await helper.blogsInDb();
+        const toBeRemoved = blogs[0];
+
+        await api.delete(`${url}/${toBeRemoved.id}`).expect(204);
+
+        const blogsAfter = await helper.blogsInDb();
+        expect(blogsAfter.length).toBe(blogs.length-1);
+        expect(blogsAfter).not.toContainEqual(toBeRemoved);
     })
 })
