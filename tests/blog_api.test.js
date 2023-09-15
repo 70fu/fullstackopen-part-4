@@ -4,12 +4,21 @@ const supertest = require('supertest')
 const app = require('../app')
 const api = supertest(app);
 const Blog = require('../models/blog');
+const User = require('../models/user');
 const helper = require('./blog_test_helpers');
 const logger = require('../utils/logger');
 
 
 beforeEach(async () => {
+    await User.deleteMany({});
     await Blog.deleteMany({});
+
+    const user = new User({
+        username:'simsom',
+        name:'nomis',
+        password:'CanYouGuessThis'
+    });
+    await user.save();
 
     const blogs = helper.initialBlogs.map(blog => new Blog(blog));
     const promises = blogs.map(blog => blog.save());
@@ -67,7 +76,9 @@ describe('POST /api/blogs', () => {
         const blogs = await helper.blogsInDb();
         expect(blogs.length).toBe(helper.initialBlogs.length + 1);
 
-        expect(blogs).toContainEqual(response.body);
+        expect(blogs).toEqual(expect.arrayContaining([
+            expect.objectContaining(response.body)
+        ]));
     })
 
     test('sets likes to 0 if missing in request body', async () => {
