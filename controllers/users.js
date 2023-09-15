@@ -4,11 +4,12 @@ const User = require('../models/user');
 const logger = require('../utils/logger');
 
 usersRouter.post('/', async (request, response) => {
+    const MINIMUM_PASSWORD_LENGTH=3;
     const { username, name, password } = request.body;
 
-    //return 400 if password is missing
-    if(!password){
-        response.status(400).send('password is required');
+    //return 400 if password is missing or too short
+    if(!password || password.length<MINIMUM_PASSWORD_LENGTH){
+        response.status(400).send(`password of at least ${MINIMUM_PASSWORD_LENGTH} characters is required`);
     }
 
     const saltRounds = 10;

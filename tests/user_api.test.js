@@ -65,10 +65,20 @@ describe('POST /api/users', () => {
     test('missing username returns 400', async () => {
         const { username, ...userNoUsername } = newUser;
         await api.post(url).send(userNoUsername).expect(400);
-    })
+    });
 
     test('missing password returns 400', async () => {
         const { password, ...userNoPassword } = newUser;
         await api.post(url).send(userNoPassword).expect(400);
-    })
+    });
+
+    test('username with length<3 returns 400', async () => {
+        const shortNameUser = { ...newUser, username:'ts' };
+        await api.post(url).send(shortNameUser).expect(400);
+    });
+
+    test('password with length<3 returns 400', async () => {
+        const shortPasswordUser = { ...newUser, password:'ts' };
+        await api.post(url).send(shortPasswordUser).expect(400);
+    });
 })
