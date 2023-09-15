@@ -4,7 +4,7 @@ const supertest = require('supertest')
 const app = require('../app')
 const api = supertest(app);
 const Blog = require('../models/blog');
-const helper = require('./test_helpers');
+const helper = require('./blog_test_helpers');
 const logger = require('../utils/logger');
 
 
