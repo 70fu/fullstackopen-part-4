@@ -8,17 +8,20 @@ const User = require('../models/user');
 const helper = require('./blog_test_helpers');
 const logger = require('../utils/logger');
 
+const user = {
+    username:'simsom',
+    name:'nomis',
+    password:'CanYouGuessThis'
+};
+let authorizationHeaderValue;
 
 beforeEach(async () => {
     await User.deleteMany({});
     await Blog.deleteMany({});
 
-    const user = new User({
-        username:'simsom',
-        name:'nomis',
-        password:'CanYouGuessThis'
-    });
-    await user.save();
+    await api.post('/api/users').send(user);
+    const loginResponse = await api.post('/api/login').send(user);
+    authorizationHeaderValue = `Bearer ${loginResponse.body.token}`;
 
     const blogs = helper.initialBlogs.map(blog => new Blog(blog));
     const promises = blogs.map(blog => blog.save());
@@ -69,6 +72,7 @@ describe('POST /api/blogs', () => {
 
     test('adds one blog', async () => {
         const response = await api.post(url)
+            .set('authorization',authorizationHeaderValue)
             .send(newBlog)
             .expect(201)
             .expect('Content-Type',/application\/json/);
@@ -79,11 +83,21 @@ describe('POST /api/blogs', () => {
         expect(blogs).toEqual(expect.arrayContaining([
             expect.objectContaining(response.body)
         ]));
+
+        //check if user is referenced in blog entry
+        const{ password, ...userWithoutPassword } = user;
+        expect(response.body).toHaveProperty('user',expect.objectContaining(userWithoutPassword));
+
+        //check if blog is in blogs array of given user
+        const userResponse = await api.get(`/api/users/${response.body.user.id}`);
+        const { user:_, ...blogWithoutUser } = response.body;
+        expect(userResponse.body.blogs).toContainEqual(blogWithoutUser);
     })
 
     test('sets likes to 0 if missing in request body', async () => {
         const { likes, ...blogNoLikes } = newBlog;
         const response = await api.post(url)
+            .set('authorization',authorizationHeaderValue)
             .send(blogNoLikes)
             .expect(201)
             .expect('Content-Type',/application\/json/);
@@ -93,13 +107,19 @@ describe('POST /api/blogs', () => {
 
     test('missing title returns 400', async () => {
         const { title, ...blogNoTitle } = newBlog;
-        await api.post(url).send(blogNoTitle).expect(400);
+        await api.post(url)
+            .set('authorization',authorizationHeaderValue)
+            .send(blogNoTitle)
+            .expect(400);
     })
 
     test('missing url returns 400', async () => {
         const blogNoUrl = { ...newBlog };
         delete blogNoUrl.url;
-        await api.post(url).send(blogNoUrl).expect(400);
+        await api.post(url)
+            .set('authorization',authorizationHeaderValue)
+            .send(blogNoUrl)
+            .expect(400);
     })
 })
 

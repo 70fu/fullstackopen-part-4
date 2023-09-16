@@ -42,6 +42,24 @@ describe('GET /api/users', () => {
     })
 });
 
+describe('GET /api/users/:id', () => {
+    const url = '/api/users';
+
+    test('returns user with given id', async () => {
+        const users = await helper.usersInDb();
+        const response = await api.get(`${url}/${users[0].id}`)
+            .expect(200)
+            .expect('Content-Type',/application\/json/);
+
+        expect(response.body).toEqual(users[0]);
+    });
+
+    test('with invalid id returns 404', async () => {
+        const invalidId = await helper.nonExistingId();
+        await api.get(`${url}/${invalidId}`).expect(404);
+    })
+})
+
 describe('POST /api/users', () => {
     const url = '/api/users';
     const newUser = {
