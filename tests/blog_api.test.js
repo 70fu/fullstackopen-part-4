@@ -19,11 +19,11 @@ beforeEach(async () => {
     await User.deleteMany({});
     await Blog.deleteMany({});
 
-    await api.post('/api/users').send(user);
+    const userResponse = await api.post('/api/users').send(user);
     const loginResponse = await api.post('/api/login').send(user);
     authorizationHeaderValue = `Bearer ${loginResponse.body.token}`;
 
-    const blogs = helper.initialBlogs.map(blog => new Blog(blog));
+    const blogs = helper.initialBlogs.map(blog => new Blog({ user:userResponse.body.id,...blog }));
     const promises = blogs.map(blog => blog.save());
     await Promise.all(promises);
 });
@@ -129,12 +129,40 @@ describe('DELETE /api/blogs/:id',() => {
         const blogs = await helper.blogsInDb();
         const toBeRemoved = blogs[0];
 
-        await api.delete(`${url}/${toBeRemoved.id}`).expect(204);
+        await api.delete(`${url}/${toBeRemoved.id}`)
+            .set('authorization',authorizationHeaderValue)
+            .expect(204);
 
         const blogsAfter = await helper.blogsInDb();
         expect(blogsAfter.length).toBe(blogs.length-1);
         expect(blogsAfter).not.toContainEqual(toBeRemoved);
-    })
+    });
+
+    test('without authorization header returns 401', async () => {
+        const blogs = await helper.blogsInDb();
+        const toBeRemoved = blogs[0];
+
+        await api.delete(`${url}/${toBeRemoved.id}`).expect(401);
+    });
+
+    test('with wrong user logged in returns 401', async () => {
+        //create a second user
+        const secondUser = {
+            username:'e11a',
+            name:'Ella',
+            password:'EllasSecret'
+        };
+        await api.post('/api/users').send(secondUser);
+        const loginResponse = await api.post('/api/login').send(secondUser);
+        const secondUserAuth = `Bearer ${loginResponse.body.token}`;
+
+        const blogs = await helper.blogsInDb();
+        const toBeRemoved = blogs[0];
+
+        await api.delete(`${url}/${toBeRemoved.id}`)
+            .set('authorization',secondUserAuth)
+            .expect(401);
+    });
 })
 
 describe('PUT /api/blogs/:id',() => {
@@ -154,7 +182,7 @@ describe('PUT /api/blogs/:id',() => {
             .expect(200)
             .expect('Content-Type',/application\/json/);
 
-        expect(response.body).toEqual(updated);
+        expect(response.body).toMatchObject(updated);
     });
 
     test('for non-existing id returns 404', async () => {
