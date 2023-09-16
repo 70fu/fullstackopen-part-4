@@ -2,21 +2,21 @@ const logger = require('../utils/logger');
 const blogRouter = require('express').Router()
 const Blog = require('../models/blog');
 const User = require('../models/user');
-const jwt = require('jsonwebtoken');
+const middleware = require('../utils/middleware');
 
 blogRouter.get('/', async (request, response) => {
     const blogs = await Blog.find({}).populate('user',{ username:1,name:1 });
     return response.json(blogs)
 })
 
-blogRouter.post('/', async (request, response) => {
+blogRouter.post('/',middleware.userExtractor, async (request, response) => {
     logger.info('creating blog entry for body',request.body);
 
-    const decodedToken = jwt.verify(request.token, process.env.SECRET);
-    if(!decodedToken.id) {
-        return response.status(401).json({ error:'invalid token' });
+    if(!request.user){
+        return response.status(401).json({ error:'authorization required to create blog entry' });
     }
-    const user = await User.findById(decodedToken.id);
+
+    const user = await User.findById(request.user.id);
 
     const blog = new Blog({ ...request.body, user:user._id });
 
@@ -27,21 +27,16 @@ blogRouter.post('/', async (request, response) => {
     return response.status(201).json(result);
 })
 
-blogRouter.delete('/:id', async (request, response) => {
+blogRouter.delete('/:id', middleware.userExtractor, async (request, response) => {
     logger.info('deleting blog entry with id', request.params.id);
-
-    const decodedToken = jwt.verify(request.token, process.env.SECRET);
-    if(!decodedToken.id) {
-        return response.status(401).json({ error:'invalid token' });
-    }
 
     const blog = await Blog.findById(request.params.id);
     if(blog){
-        if(blog.user.toString() === decodedToken.id){
+        if(request.user && blog.user.toString() === request.user.id){
             await Blog.findByIdAndDelete(request.params.id);
             return response.status(204).end();
         }
-        else{
+        else {
             return response.status(401).json({ error:'you are unauthorized to delete this blog entry' });
         }
     }

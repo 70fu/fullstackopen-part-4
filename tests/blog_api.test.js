@@ -120,6 +120,12 @@ describe('POST /api/blogs', () => {
             .set('authorization',authorizationHeaderValue)
             .send(blogNoUrl)
             .expect(400);
+    });
+
+    test('without authorization returns 401', async () => {
+        await api.post(url)
+            .send(newBlog)
+            .expect(401);
     })
 })
 
