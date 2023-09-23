@@ -183,7 +183,9 @@ describe('PUT /api/blogs/:id',() => {
         const blogs = await helper.blogsInDb();
         const updated = { ...newBlogValues,id:blogs[0].id };
 
-        const response = await api.put(`${url}/${blogs[0].id}`)
+        const response = await api
+            .put(`${url}/${blogs[0].id}`)
+            .set('authorization',authorizationHeaderValue)
             .send(updated)
             .expect(200)
             .expect('Content-Type',/application\/json/);
@@ -191,11 +193,42 @@ describe('PUT /api/blogs/:id',() => {
         expect(response.body).toMatchObject(updated);
     });
 
+    test('without authorization returns 401', async () => {
+        const blogs = await helper.blogsInDb();
+        const updated = { ...newBlogValues,id:blogs[0].id };
+
+        await api.put(`${url}/${blogs[0].id}`)
+            .send(updated)
+            .expect(401)
+            .expect('Content-Type',/application\/json/);
+    })
+
     test('for non-existing id returns 404', async () => {
         const nonExistingId = await helper.nonExistingId();
         const updated = { ...newBlogValues,id:nonExistingId };
         await api.put(`${url}/${nonExistingId}`)
+            .set('authorization',authorizationHeaderValue)
             .send(updated)
             .expect(404);
     });
+
+    test('update with wrong user returns 401', async () => {
+        const anotherUser = {
+            username:'admin',
+            name:'admin',
+            password:'admin'
+        }
+        await api.post('/api/users').send(anotherUser);
+        const loginResponse = await api.post('/api/login').send(anotherUser);
+        const anotherAuthorization = `Bearer ${loginResponse.body.token}`;
+
+        const blogs = await helper.blogsInDb();
+        const updated = { ...newBlogValues,id:blogs[0].id };
+
+        await api
+            .put(`${url}/${blogs[0].id}`)
+            .set('authorization',anotherAuthorization)
+            .send(updated)
+            .expect(401);
+    })
 })

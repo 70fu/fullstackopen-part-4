@@ -45,11 +45,26 @@ blogRouter.delete('/:id', middleware.userExtractor, async (request, response) =>
     }
 })
 
-blogRouter.put('/:id', async (request, response) => {
+blogRouter.put('/:id', middleware.userExtractor, async (request, response) => {
     logger.info('updating blog entry with id', request.params.id);
-    const updated = await Blog.findByIdAndUpdate(request.params.id,request.body,{ new: true, runValidators: true, context: 'query' });
-    if(updated){
-        return response.status(200).json(updated);
+    logger.info('received blog data',request.body);
+
+    if(!request.user){
+        return response.status(401).json({ error:'authorization required to update blog entry' });
+    }
+
+    const blog = await Blog.findById(request.params.id);
+    if(blog){
+        logger.info('blog entry in database',blog);
+
+        if(request.user && blog.user.toString() === request.user.id){
+            const updated = await Blog.findByIdAndUpdate(request.params.id,request.body,{ new: true, runValidators: true, context: 'query' });
+            await updated.populate('user',{ username:1,name:1 });
+            return response.status(200).json(updated);
+        }
+        else {
+            return response.status(401).json({ error:'you are unauthorized to update this blog entry' });
+        }
     }
     else {
         return response.status(404).end();
